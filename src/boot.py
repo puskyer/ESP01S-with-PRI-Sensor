@@ -37,6 +37,9 @@ data_file.close
 ssid =  DataJson["wifi"]["STSSID"]
 ssid_password =  DataJson["wifi"]["STpassword"]
 
+AP = network.WLAN(network.AP_IF)
+AP.active(False)
+
 station = network.WLAN(network.STA_IF)
 station.active(True)
 station.connect(ssid, ssid_password)
