@@ -51,7 +51,7 @@ if IsBilgePumpDev  :
       "led" : "Off"
     }
 elif IsslampherDev:
-    PRI_pin = 3
+    PRI_pin = 0
     PRIMsg = 'OFF'
     PRIStateOn = "On"
     PRIStateOff = "Off"
@@ -177,7 +177,6 @@ except OSError as e:
 while True:
   try:
     client.check_msg()
-    blink_led(5)
     if (utime.time() - last_message) > message_interval:
       JsonMqtt = ujson.dumps(mqttJson)
       if IsBilgePumpDev :
@@ -185,21 +184,29 @@ while True:
         client.publish(pubtopic, JsonMqtt)
       elif IsslampherDev:
         PRIState = Pin(PRI_pin, Pin.IN).value()
-        if PRIState == True and mqttJson["PRI"] == 'Off':          # motion
-          pubtopic = topic_pub+sub_topic_power
-          client.publish(pubtopic, PRIStateOn)
+        if PRIState == 1 and mqttJson["PRI"] == 'Off':          # motion
+          start = utime.ticks_ms()
           mqttJson["PRI"] = 'On'
-        elif  PRIState == False and mqttJson["PRI"] == 'On':
+          led_on()
           pubtopic = topic_pub+sub_topic_power
-          client.publish(pubtopic, PRIStateOff)            
-          mqttJson["PRI"] = 'Off'  
+          client.publish(pubtopic, PRIStateOn)          
+        elif  PRIState == 0 and mqttJson["PRI"] == 'On':
+          end = utime.ticks_diff(utime.ticks_ms(),start)
+          print (end / 1000)            
+          mqttJson["PRI"] = 'Off'
+          led_off()
+          pubtopic = topic_pub+sub_topic_power
+          client.publish(pubtopic, PRIStateOff)
+        print("PRI State is ", PRIState)
         pubtopic = topic_pub+sub_topic_stat_PRI
+        JsonMqtt = ujson.dumps(mqttJson)
         client.publish(pubtopic, JsonMqtt)          
       last_message = utime.time()
       counter += 1
       mqttJson["Count"] = counter
-      print ('publishing to topic %s' % (topic_pub))
-      print ('with message %s' % (mqttJson))
+      #print("MQTT PRI value is ",mqttJson["PRI"])
+      #print ('publishing to topic %s' % (topic_pub))
+      #print ('with message %s' % (mqttJson))
       #print ('last_message is %s' % (last_message))
   except OSError as e:
     restart_and_reconnect()
